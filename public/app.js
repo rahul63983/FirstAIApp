@@ -16,6 +16,7 @@ const state = {
   model: 'gemini-3.5-flash',
   scenario: 'casual',
   apiKey: localStorage.getItem('gemini_coach_key') || '',
+  isStaticHost: window.location.hostname.endsWith('github.io') || window.location.protocol === 'file:' || !window.location.port || window.location.port === '443',
   silenceDelay: parseFloat(localStorage.getItem('gemini_coach_silence') || '2800'),
   correctionsCount: 0,
   totalWordsSpoken: 0,
@@ -441,7 +442,11 @@ async function callGeminiDirectly(userText) {
     throw new Error('Gemini API Key is required. Please tap Settings (⚙️) to enter your API key.');
   }
 
-  const model = state.model || 'gemini-3.5-flash';
+  let preferredModel = state.model || 'gemini-3.5-flash';
+  if (preferredModel === 'gemini-2.5-flash' || preferredModel === 'gemini-1.5-flash' || preferredModel === 'gemini-2.0-flash') {
+    preferredModel = 'gemini-3.5-flash';
+  }
+
   let scenarioNote = '';
   if (state.scenario && state.scenario !== 'casual') {
     scenarioNote = `\n\n[Active Practice Scenario: ${state.scenario}. Stay in character for this scenario while keeping your friendly coaching identity.]`;
@@ -462,32 +467,51 @@ async function callGeminiDirectly(userText) {
     parts: [{ text: userText }]
   });
 
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const candidateModels = [
+    preferredModel,
+    'gemini-3.5-flash',
+    'gemini-flash-lite-latest',
+    'gemini-3.8-flash'
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: fullSystemPrompt }] },
-      contents: contents,
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.9,
-        maxOutputTokens: 600
+  let lastError = null;
+
+  for (const model of candidateModels) {
+    try {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: fullSystemPrompt }] },
+          contents: contents,
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.9,
+            maxOutputTokens: 600
+          }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const replyText = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+        const { cleanSpeechText, correction } = parseCorrectionClient(replyText);
+        return { reply: replyText, cleanSpeechText, correction, modelUsed: model };
       }
-    })
-  });
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData?.error?.message || `Gemini status ${response.status}`);
+      const errData = await response.json().catch(() => ({}));
+      const errorMsg = errData?.error?.message || `Gemini status ${response.status}`;
+      console.warn(`[Direct Gemini] Model ${model} returned: ${errorMsg}. Trying next candidate...`);
+      lastError = errorMsg;
+    } catch (e) {
+      console.warn(`[Direct Gemini] Model ${model} fetch exception: ${e.message}. Trying next candidate...`);
+      lastError = e.message;
+    }
   }
 
-  const data = await response.json();
-  const replyText = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
-  const { cleanSpeechText, correction } = parseCorrectionClient(replyText);
-
-  return { reply: replyText, cleanSpeechText, correction, modelUsed: model };
+  throw new Error(lastError || 'Failed to get response from Gemini.');
 }
 
 async function sendMessage(userText) {
@@ -518,34 +542,37 @@ async function sendMessage(userText) {
 
   try {
     let data;
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userText,
-          history: state.history,
-          clientApiKey: state.apiKey,
-          model: state.model,
-          scenario: state.scenario
-        })
-      });
+    // On static hosting (like GitHub Pages), call Gemini directly without requesting non-existent /api/chat
+    if (state.isStaticHost) {
+      data = await callGeminiDirectly(userText);
+    } else {
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: userText,
+            history: state.history,
+            clientApiKey: state.apiKey,
+            model: state.model,
+            scenario: state.scenario
+          })
+        });
 
-      if (response.ok) {
-        data = await response.json();
-      } else if (response.status === 404) {
-        // Fallback for static hosting like GitHub Pages
-        data = await callGeminiDirectly(userText);
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server status ${response.status}`);
-      }
-    } catch (fetchErr) {
-      if (fetchErr.name === 'TypeError' || fetchErr.message.includes('fetch')) {
-        // Network/static host fallback (GitHub Pages)
-        data = await callGeminiDirectly(userText);
-      } else {
-        throw fetchErr;
+        if (response.ok) {
+          data = await response.json();
+        } else if (response.status === 404 || response.status === 405) {
+          data = await callGeminiDirectly(userText);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Server status ${response.status}`);
+        }
+      } catch (fetchErr) {
+        if (fetchErr.name === 'TypeError' || fetchErr.message.includes('fetch')) {
+          data = await callGeminiDirectly(userText);
+        } else {
+          throw fetchErr;
+        }
       }
     }
 
@@ -708,24 +735,28 @@ async function openSessionSummary() {
 
   try {
     let data;
-    try {
-      const res = await fetch('/api/session-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          history: state.history,
-          clientApiKey: state.apiKey,
-          model: state.model
-        })
-      });
+    if (state.isStaticHost) {
+      data = await generateSummaryDirectly();
+    } else {
+      try {
+        const res = await fetch('/api/session-summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            history: state.history,
+            clientApiKey: state.apiKey,
+            model: state.model
+          })
+        });
 
-      if (res.ok) {
-        data = await res.json();
-      } else {
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          data = await generateSummaryDirectly();
+        }
+      } catch (fetchErr) {
         data = await generateSummaryDirectly();
       }
-    } catch (fetchErr) {
-      data = await generateSummaryDirectly();
     }
 
     if (data.error) throw new Error(data.error);
