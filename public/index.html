@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIcoach</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navigation Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" x2="12" y1="19" y2="22"/>
+          </svg>
+        </div>
+        <div>
+          <h1>AIcoach</h1>
+        </div>
+      </div>
+
+      <!-- Practice Scenario Switcher -->
+      <div class="scenario-selector-wrap">
+        <label for="scenarioSelect">Scenario:</label>
+        <select id="scenarioSelect" class="select-dropdown">
+          <option value="casual" selected>☕ Friendly Warm-Up & Casual Chat</option>
+          <option value="interview">💼 Job Interview Practice</option>
+          <option value="workplace">📊 Workplace Meeting & Discussion</option>
+          <option value="disagree">🤝 Disagreeing Politely & Debating</option>
+          <option value="storytelling">📖 Storytelling & Experience Sharing</option>
+          <option value="ordering">🍽️ Cafe & Travel Everyday Situations</option>
+        </select>
+      </div>
+
+      <!-- Action Tools -->
+      <div class="header-actions">
+        <button id="summaryBtn" class="btn btn-secondary" title="View Practice Feedback Summary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span>Summary</span>
+        </button>
+
+        <button id="settingsBtn" class="btn btn-icon" title="Settings (API Key & Voice)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid Content -->
+    <main class="main-content">
+      <!-- Left Column: Voice Orb & Interactive Stage -->
+      <section class="voice-stage">
+        <!-- Live Status Pill -->
+        <div class="status-container">
+          <div id="statusPill" class="status-pill idle">
+            <span class="status-dot"></span>
+            <span id="statusText">Ready to practice</span>
+          </div>
+        </div>
+
+        <!-- Canvas Orb -->
+        <div class="orb-wrapper">
+          <canvas id="orbCanvas"></canvas>
+          <button id="orbCenterBtn" class="orb-center-btn" title="Click to start/stop speaking">
+            <svg id="micIcon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Live Subtitle Display -->
+        <div class="subtitle-card" id="subtitleCard">
+          <p id="liveSubtitle" class="live-subtitle">Click the mic or press Space to start speaking...</p>
+        </div>
+
+        <!-- Voice Controls Toolbar -->
+        <div class="controls-toolbar">
+          <button id="toggleMicBtn" class="btn btn-primary btn-large">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            </svg>
+            <span id="micBtnLabel">Start Speaking</span>
+          </button>
+
+          <button id="sendNowBtn" class="btn btn-primary" style="display: none;" title="Send your spoken words immediately without waiting for silence">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span>Send Now</span>
+          </button>
+
+          <button id="interruptBtn" class="btn btn-secondary" title="Interrupt coach / Stop audio">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="6" y="6" width="12" height="12"></rect>
+            </svg>
+            <span>Stop Audio</span>
+          </button>
+
+          <label class="toggle-mode">
+            <input type="checkbox" id="continuousMode" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Continuous Conversation</span>
+          </label>
+        </div>
+
+        <!-- Text Input Fallback -->
+        <div class="text-fallback">
+          <input type="text" id="textInput" placeholder="Prefer typing? Type your message here..." />
+          <button id="sendTextBtn" class="btn btn-secondary">Send</button>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Coach Feedback & Transcript -->
+      <aside class="side-panel">
+        <div class="side-tabs">
+          <button class="tab-btn active" data-tab="feedback">
+            💡 Coach Notes & Corrections
+            <span id="correctionCountBadge" class="badge">0</span>
+          </button>
+          <button class="tab-btn" data-tab="transcript">
+            💬 Conversation Transcript
+          </button>
+        </div>
+
+        <!-- Feedback Tab -->
+        <div id="feedbackTab" class="tab-pane active">
+          <div id="latestCorrectionContainer" class="correction-card empty-state">
+            <div class="empty-icon">🎯</div>
+            <h3>No corrections yet</h3>
+            <p>Speak freely! Your coach will highlight natural phrasing, grammar tips, and better word choices here when helpful.</p>
+          </div>
+
+          <div class="tip-box">
+            <h4>💡 Natural Speaking Tip</h4>
+            <p id="dynamicTip">Don't worry about speaking perfectly. Express your thought first, and your coach will help refine it gently.</p>
+          </div>
+
+          <!-- Quick Metrics Bar -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-value" id="turnCount">0</span>
+              <span class="metric-label">Turns</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value" id="wordCount">0</span>
+              <span class="metric-label">Words Spoken</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value" id="correctionsTotal">0</span>
+              <span class="metric-label">Tips Learned</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transcript Tab -->
+        <div id="transcriptTab" class="tab-pane">
+          <div id="transcriptFeed" class="transcript-feed">
+            <div class="chat-message coach initial-message">
+              <div class="message-meta">Coach • Just now</div>
+              <div class="message-body">
+                Hey! Good to talk to you. Let's practice some English together. How has your day been so far?
+              </div>
+            </div>
+          </div>
+          <div class="transcript-actions">
+            <button id="clearChatBtn" class="btn btn-text">Clear History</button>
+            <button id="exportChatBtn" class="btn btn-text">Copy Transcript</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2>Settings & Voice Preferences</h2>
+          <button class="close-btn" id="closeSettingsBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="apiKeyInput">Gemini API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="AIzaSy... (leave blank if set in .env)" />
+            <small>Stored locally in your browser. Get a free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="modelSelect">Gemini Model</label>
+            <select id="modelSelect" class="select-dropdown">
+              <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash (Fast &amp; Stable, recommended)</option>
+              <option value="gemini-3.8-flash">Gemini 3.8 Flash (Latest)</option>
+              <option value="gemini-flash-lite-latest">Gemini Flash Lite (Ultra fast)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="voiceSelect">Coach Voice (Text-to-Speech)</label>
+            <select id="voiceSelect" class="select-dropdown">
+              <option value="">Default English Voice</option>
+            </select>
+            <button id="testVoiceBtn" class="btn btn-secondary btn-small" style="margin-top: 8px;">🔊 Test Voice</button>
+          </div>
+
+          <div class="form-group">
+            <label for="silenceRange">Thinking Pause Wait (Silence Timer): <span id="silenceVal">2.8s</span></label>
+            <input type="range" id="silenceRange" min="1.5" max="5.0" step="0.25" value="2.8" />
+            <small>How long the coach waits in silence before replying. Increase this if you want more time to pause and think without getting cut off.</small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="rateRange">Speaking Pace: <span id="rateVal">1.0x</span></label>
+              <input type="range" id="rateRange" min="0.7" max="1.3" step="0.05" value="1.0" />
+            </div>
+            <div class="form-group half">
+              <label for="pitchRange">Pitch: <span id="pitchVal">1.0</span></label>
+              <input type="range" id="pitchRange" min="0.8" max="1.3" step="0.05" value="1.0" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="saveSettingsBtn" class="btn btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session Feedback Modal -->
+    <div id="summaryModal" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2>🎯 Practice Session Summary</h2>
+          <button class="close-btn" id="closeSummaryBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="summaryContent">
+          <div class="loading-spinner">Generating comprehensive coaching summary with Gemini...</div>
+        </div>
+        <div class="modal-footer">
+          <button id="copySummaryBtn" class="btn btn-secondary">Copy Summary</button>
+          <button id="dismissSummaryBtn" class="btn btn-primary">Keep Practicing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="orb.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
